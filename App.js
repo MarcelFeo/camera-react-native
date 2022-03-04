@@ -6,6 +6,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Feather } from '@expo/vector-icons';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
+import * as Permissions from 'expo-permissions';
+import * as MediaLibrary from 'expo-media-library';
+
 export default function App() {
   const camRef = useRef(null);
   const [type, setType] = useState(Camera.Constants.Type.front)
@@ -15,7 +18,12 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      const {status} = await Camera.requestCameraPermissionsAsync();
+      const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === 'granted');
+    })();
+
+    (async () => {
+      const { status } = await Permissions.askAsync(Permissions.CAMERA_ROLL);
       setHasPermission(status === 'granted');
     })();
   },[]);
@@ -36,6 +44,16 @@ export default function App() {
     }
   };
 
+  const savePicture = async () => {
+    const asset = await MediaLibrary.createAssetAsync(capturedPhoto)
+    .then(() => {
+      alert('Salvo com sucesso!');
+    })
+    .catch(error => {
+      console.error(error);
+    })
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <Camera 
@@ -43,7 +61,7 @@ export default function App() {
         type={type}
         ref={camRef}
       >
-        <View style={{flex: 1, backgroundColor: 'transparent', flexDirection: 'row'}}>
+        <View style={{flex: 1, backgroundColor: 'transparent', flexDirection: 'row', alignItems: 'center', justifyContent: 'center'}}>
           <TouchableOpacity 
             style={{position: 'absolute', bottom: 20, left: 20}}
             onPress={() => {
@@ -52,15 +70,14 @@ export default function App() {
           >
             <MaterialIcons name="flip-camera-ios" size={35} color="#ff304f" />
           </TouchableOpacity>
+          <TouchableOpacity 
+              style={styles.button}
+              onPress={takePicture}
+            >
+            <Feather name="circle" size={48} color="#ff304f" />
+          </TouchableOpacity>
         </View>
       </Camera>
-
-      <TouchableOpacity 
-        style={styles.button}
-        onPress={takePicture}
-      >
-        <Feather name="circle" size={48} color="#ff304f" />
-      </TouchableOpacity>
 
       { capturedPhoto && 
         <Modal 
@@ -76,17 +93,25 @@ export default function App() {
               margin: 20,
             }}
           >
-            <TouchableOpacity 
-              style={{ margin: 10 }}
-              onPress={() => setOpen(false)}
-            >
-              <MaterialCommunityIcons name="window-close" size={24} color="#ff304f" />
-            </TouchableOpacity>
+            <View style={{margin: 10, flexDirection: 'row'}}>
+              <TouchableOpacity 
+                style={{ margin: 10 }}
+                onPress={() => setOpen(false)}
+              >
+                <MaterialCommunityIcons name="window-close" size={24} color="#ff304f" />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={{ margin: 10 }}
+                onPress={ savePicture }
+              >
+                <MaterialCommunityIcons name="upload" size={24} color="#ff304f" />
+              </TouchableOpacity>
+            </View>
 
             <Image 
               style={{
                 width: '100%',
-                height: 300,
+                height: 450,
                 borderRadius: 20,
               }}
               source={{ uri: capturedPhoto }}
@@ -106,8 +131,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   button: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    margin: 20,
+   marginTop: '190%',
   }
 });
